@@ -1,41 +1,30 @@
-# god-addon-template
-Template repository to create a plugin for the Godot Asset Store.\
-You can use this repository template for your new addon project.\
-The `addons` folder already contains a copy of the coldrock MIT license dated with 2025.
+# Coldrock MarketingCamera
+This repository contains a Camera3D node to take marketing screenshots. 
 
-### If you create a new plugin
-Please verify the year in the license file.
+It allows you to explore the scene from arbitrary angles and perspectives that are outside of the standard gameplay mechanics.
 
-If it is outdated, clone the original template repository `god-plugin-template` and update the (c)year to the current year.
+## Main Features
 
-**Do this in two files:**
-* The `LICENSE` file in the repository root
-* The `LICENSE_MIT_Coldrock_Games` file in the `addons` folder
+* **Free camera movement** (WASD) and climbing up/down (QE) in any 3D scene
+* **Hotkey for slo-mo mode** (reduce the time scale of the scene)
+* When toggled on, **freezes the scene**, so you can move around freely and position the camera for the perfect screenshot for your Store-Images.
 
-Commit the template repository afterwards. Thanks!
+## QoL Features
 
-# Important: The `.gitattributes` file
-This file contains a block of commands for github how to treat exports/zip downloads from the asset store.
+* All settings configurable directly in the **inspector**
+* **Export aware:** Disables itself when running in an export\
+(you may choose to keep it alive even in exports, so your Marketing crew can create the perfect screenshots from the running game without access to the source code)
+* Choose your hotkeys by setting **Input Map names** in the inspector
 
-It is located at the end of the file and looks like this:
-```
-# Godot Plugin Repository attributes
-# COMMENT THE BLOCK BELOW if this repository
-# contains a full PROJECT TEMPLATE!
-# This block is only needed if you publish this
-# repository to the Godot Asset Store
-# It tells github to only include the addons folder 
-# when downloading from the Asset Library.
-/**        export-ignore
-/addons    !export-ignore
-/addons/** !export-ignore
-```
 
-If you plan to publish this repository as a _full project template_ and not as a plugin for the asset store, it is very important, that you comment out the last three lines, otherwise your project can not be downloaded from the asset store correctly!
+## Default hotkeys
 
-Commenting out a line simply requires a `#` character at the start of the line:
-```
-#/**        export-ignore
-#/addons    !export-ignore
-#/addons/** !export-ignore
-```
+|Key|Action|
+|---|---|
+|`TAB`|Activate/Deactivate the MarketingCamera.|
+|`WASD`|Move the camera freely over the scene.|
+|`QE`|Move the camera up/down along the Y-axis.|
+|`R`|Reset the camera to default position, fov and rotation.|
+|`Mouse Wheel`|Zoom in/out by moving the camera closer. Hold `SHIFT` to modify the FOV instead.|
+|`Middle Mouse Button`|Rotate the camera. Hold `SHIFT` to pan instead of rotating.|
+|`CTRL`|Hold down this key to set the scene into slo-mo mode.|
