@@ -1,3 +1,7 @@
+![coldrock-banner-itch-960x110](https://github.com/coldrockgames/.github/blob/main/public_images/repo-banner-trans.png)
+
+https://github.com/user-attachments/assets/46a1d513-d419-4156-b23d-322c0beacbbc
+
 # Coldrock MarketingCamera
 This repository contains a Camera3D node to take marketing screenshots. 
 
