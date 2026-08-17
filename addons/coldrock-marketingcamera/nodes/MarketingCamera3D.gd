@@ -27,7 +27,7 @@ extends Camera3D
 @export var active:bool = false:
 	set(value):
 		active = value
-		if not G.is_editor_context:
+		if not is_editor_context:
 			_update_camera_state()
 ## If [code]true[/code], the camera will automatically turn silent in exported games.
 @export var disable_in_exports:bool = true
@@ -66,6 +66,8 @@ extends Camera3D
 
 var is_editor_context = Engine.is_editor_hint() or DisplayServer.get_name() == "headless"
 var is_export:bool = not OS.has_feature("editor")
+
+
 var _initial_fov:float
 var _runtime_min_fov:float
 var _runtime_max_fov:float
