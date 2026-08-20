@@ -2,6 +2,8 @@
 
 https://github.com/user-attachments/assets/46a1d513-d419-4156-b23d-322c0beacbbc
 
+![Godot Version](https://img.shields.io/badge/Godot-4.6+-blue.svg) ![License](https://img.shields.io/badge/License-MIT-green.svg) ![Version](https://img.shields.io/badge/Version-2608.4-orange)
+
 # Coldrock MarketingCamera
 This repository contains a Camera3D node to take marketing screenshots. 
 
