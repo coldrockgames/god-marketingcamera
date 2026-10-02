@@ -40,6 +40,9 @@ extends Camera2D
 ## "Input Map" name for the activation hotkey.[br]
 ## If empty, the [code]TAB[/code] key will toggle activation state.
 @export var activate_action:StringName = &""
+## "Input Map" name for dumping camera data.[br]
+## If empty, the [code]SPACE[/code] key will trigger the dump.
+@export var dump_action:StringName = &""
 ## "Input Map" name for the slow-mo hotkey.[br]
 ## If empty, the [code]CTRL[/code] key will toggle slow-mo.
 @export var slow_mo_action:StringName = &""
@@ -51,6 +54,9 @@ extends Camera2D
 @export_custom(PROPERTY_HINT_NONE, "suffix:°/px") var rotation_sensitivity:float = 0.2
 ## The movement speed while panning the camera using [param SHIFT] and drag with the middle button held.
 @export_custom(PROPERTY_HINT_NONE, "suffix:px/px") var pan_sensitivity:float = 1.0
+## All [param WASD]-action speeds will be multiplied with this value if you hold down the [param SHIFT]
+## key while moving.
+@export var shift_speed_multiplier:float = 2.0
 ## The zoom change multiplier when using the mouse wheel.
 @export_range(0.01, 1.0, 0.01, "or_greater", "suffix:step") var zoom_speed:float = 0.1
 ## The minimum zoom level (zoomed out).
@@ -120,6 +126,7 @@ func _update_camera_state() -> void:
 	if not is_inside_tree():
 		return
 	if active:
+		_print_help()
 		make_current()
 		get_tree().paused = true
 		_toggle_canvas_layers(false)
@@ -130,6 +137,37 @@ func _update_camera_state() -> void:
 		Engine.time_scale = 1.0
 		_toggle_canvas_layers(true)
 
+
+func _print_help() -> void:
+	print_rich("\n[color=cyan]Marketing Camera Keyboard Control[/color]")
+	print_rich("[color=cyan]---------------------------------[/color]")
+	print_rich("[color=yellow]TAB[/color]           Activate/Deactivate the MarketingCamera.")
+	print_rich("[color=yellow]SPACE[/color]         Dump camera transform and rotation to log and clipboard.")
+	print_rich("[color=yellow]WASD[/color]          Move the camera freely over the scene.")
+	print_rich("              (Hold down [color=yellow]SHIFT[/color] while moving [color=yellow]WASD[/color] to double up the velocity.")
+	print_rich("[color=yellow]R[/color]             Reset the camera to default position and rotation.")
+	print_rich("[color=yellow]WHEEL[/color]         Zoom in/out by moving the camera closer.")
+	print_rich("[color=yellow]MIDDLE BUTTON[/color] Rotate the camera. Hold [color=yellow]SHIFT[/color] to pan instead of rotating.")
+	print_rich("[color=yellow]CTRL[/color]          Hold down to set the scene into slo-mo mode.")
+	print_rich("              (Works always, even when the camera is not active!)")
+	print_rich("[color=cyan]---------------------------------[/color]")
+
+
+func _print_camera_data() -> void:
+	var pos:Vector2 = global_position
+	var rot:float = global_rotation_degrees
+	var log_str:String = "\n[b][color=cyan]--- MARKETING CAMERA 2D TELEMETRY DUMP ---[/color][/b]\n"
+	log_str += "Path: %s\n" % get_path()
+	log_str += "Position: Vector2(%.3f, %.3f)\n" % [pos.x, pos.y]
+	log_str += "Rotation (Deg): %.3f°\n" % rot
+	log_str += "Zoom: Vector2(%.3f, %.3f)\n" % [zoom.x, zoom.y]
+	log_str += "[color=cyan]-----------------------------------------[/color]"
+	print_rich(log_str)
+	var snippet:String = "global_position = Vector2(%.3f, %.3f)\n" % [pos.x, pos.y]
+	snippet += "global_rotation_degrees = %.3f\n" % rot
+	snippet += "zoom = Vector2(%.3f, %.3f)" % [zoom.x, zoom.y]
+	DisplayServer.clipboard_set(snippet)
+	print_rich("[color=green]Transform snippet copied to clipboard![/color]")
 
 
 func _toggle_canvas_layers(show_ui:bool) -> void:
@@ -176,6 +214,15 @@ func _unhandled_input(event:InputEvent) -> void:
 		_target_position = _initial_position
 		_target_rotation = _initial_rotation
 		_target_zoom = _initial_zoom
+	var is_dump:bool = false
+	if dump_action != &"" and event.is_action_pressed(dump_action):
+		is_dump = true
+	elif event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo:
+		is_dump = true
+	if is_dump:
+		_print_camera_data()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			var dir:float = 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
@@ -197,12 +244,13 @@ func _process(delta:float) -> void:
 	global_rotation = lerp_angle(global_rotation, _target_rotation, delta * smoothing_speed)
 	zoom = zoom.lerp(_target_zoom, delta * smoothing_speed)
 	var target_dir:Vector2 = Vector2.ZERO
+	var multiplier:float = shift_speed_multiplier if Input.is_key_pressed(KEY_SHIFT) else 1.0
 	if Input.is_key_pressed(KEY_W): target_dir.y -= 1.0
 	if Input.is_key_pressed(KEY_S): target_dir.y += 1.0
 	if Input.is_key_pressed(KEY_A): target_dir.x -= 1.0
 	if Input.is_key_pressed(KEY_D): target_dir.x += 1.0
 	if target_dir.length_squared() > 0:
-		target_dir = target_dir.normalized().rotated(global_rotation) * (move_speed / zoom.x)
+		target_dir = target_dir.normalized().rotated(global_rotation) * (move_speed / zoom.x) * multiplier
 	_current_velocity = _current_velocity.lerp(target_dir, delta * smoothing_speed)
 	_target_position += _current_velocity * delta
 	global_position = global_position.lerp(_target_position, delta * smoothing_speed)

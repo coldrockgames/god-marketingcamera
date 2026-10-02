@@ -41,6 +41,9 @@ extends Camera3D
 ## "Input Map" name for the activation hotkey.[br]
 ## If empty, the [code]TAB[/code] key will toggle activation state.
 @export var activate_action:StringName = &""
+## "Input Map" name for dumping camera data.[br]
+## If empty, the [code]SPACE[/code] key will trigger the dump.
+@export var dump_action:StringName = &""
 ## "Input Map" name for the slow-mo hotkey.[br]
 ## If empty, the [code]CTRL[/code] key will toggle slow-mo.
 @export var slow_mo_action:StringName = &""
@@ -52,6 +55,9 @@ extends Camera3D
 @export_custom(PROPERTY_HINT_NONE, "suffix:°/px") var look_sensitivity:float = 0.2
 ## The movement speed while panning the camera using [param SHIFT] and drag with the middle button held.
 @export_custom(PROPERTY_HINT_NONE, "suffix:m/px") var pan_sensitivity:float = 0.01
+## All [param WASD/QE]-action speeds will be multiplied with this value if you hold down the [param SHIFT]
+## key while moving.
+@export var shift_speed_multiplier:float = 2.0
 ## The FOV change speed when using SHIFT + mouse wheel.
 @export_range(0.1, 10.0, 0.1, "or_greater", "suffix:°/scroll") var fov_speed:float = 2.0
 ## The minimum FOV value the camera has.[br]
@@ -116,6 +122,7 @@ func _update_camera_state() -> void:
 	if not is_inside_tree():
 		return
 	if active:
+		_print_help()
 		make_current()
 		get_tree().paused = true
 		_toggle_canvas_layers(false)
@@ -125,6 +132,39 @@ func _update_camera_state() -> void:
 		get_tree().paused = false
 		Engine.time_scale = 1.0
 		_toggle_canvas_layers(true)
+
+
+func _print_help() -> void:
+	print_rich("\n[color=cyan]Marketing Camera Keyboard Control[/color]")
+	print_rich("[color=cyan]---------------------------------[/color]")
+	print_rich("[color=yellow]TAB[/color]           Activate/Deactivate the MarketingCamera.")
+	print_rich("[color=yellow]SPACE[/color]         Dump camera transform, rotation & FOV to log and clipboard.")
+	print_rich("[color=yellow]WASD[/color]          Move the camera freely over the scene.")
+	print_rich("[color=yellow]QE[/color]            Move the camera up/down along the Y-axis.")
+	print_rich("              (Hold down [color=yellow]SHIFT[/color] while moving [color=yellow]WASD/QE[/color] to double up the velocity.")
+	print_rich("[color=yellow]R[/color]             Reset the camera to default position, FOV and rotation.")
+	print_rich("[color=yellow]WHEEL[/color]         Zoom in/out by moving the camera closer. Hold [color=yellow]SHIFT[/color] to modify the FOV instead.")
+	print_rich("[color=yellow]MIDDLE BUTTON[/color] Rotate the camera. Hold [color=yellow]SHIFT[/color] to pan instead of rotating.")
+	print_rich("[color=yellow]CTRL[/color]          Hold down to set the scene into slo-mo mode.")
+	print_rich("              (Works always, even when the camera is not active!)")
+	print_rich("[color=cyan]---------------------------------[/color]")
+
+
+func _print_camera_data() -> void:
+	var pos:Vector3 = global_position
+	var rot:Vector3 = global_rotation_degrees
+	var log_str:String = "\n[b][color=yellow]--- MARKETING CAMERA 3D TELEMETRY DUMP ---[/color][/b]\n"
+	log_str += "Path: %s\n" % get_path()
+	log_str += "Position: Vector3(%.3f, %.3f, %.3f)\n" % [pos.x, pos.y, pos.z]
+	log_str += "Rotation (Deg): Vector3(%.3f, %.3f, %.3f)\n" % [rot.x, rot.y, rot.z]
+	log_str += "FOV: %.2f°\n" % fov
+	log_str += "[color=yellow]-----------------------------------------[/color]"
+	print_rich(log_str)
+	var snippet:String = "global_position = Vector3(%.3f, %.3f, %.3f)\n" % [pos.x, pos.y, pos.z]
+	snippet += "global_rotation_degrees = Vector3(%.3f, %.3f, %.3f)\n" % [rot.x, rot.y, rot.z]
+	snippet += "fov = %.2f" % fov
+	DisplayServer.clipboard_set(snippet)
+	print_rich("[color=green]Transform snippet copied to clipboard![/color]")
 
 
 func _toggle_canvas_layers(show_ui:bool) -> void:
@@ -173,6 +213,15 @@ func _unhandled_input(event:InputEvent) -> void:
 		_target_rotation = rotation
 		_target_fov = fov
 		_target_pan_offset = Vector3.ZERO
+	var is_dump:bool = false
+	if dump_action != &"" and event.is_action_pressed(dump_action):
+		is_dump = true
+	elif event is InputEventKey and event.keycode == KEY_SPACE and event.pressed and not event.echo:
+		is_dump = true
+	if is_dump:
+		_print_camera_data()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			var dir:float = 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1.0
@@ -209,6 +258,7 @@ func _process(delta:float) -> void:
 	var forward:Vector3 = Vector3(-sin(rotation.y), 0.0, -cos(rotation.y))
 	var right:Vector3 = Vector3(cos(rotation.y), 0.0, -sin(rotation.y))
 	var target_dir:Vector3 = Vector3.ZERO
+	var multiplier:float = shift_speed_multiplier if Input.is_key_pressed(KEY_SHIFT) else 1.0
 	if Input.is_key_pressed(KEY_W): target_dir += forward
 	if Input.is_key_pressed(KEY_S): target_dir -= forward
 	if Input.is_key_pressed(KEY_A): target_dir -= right
@@ -216,6 +266,6 @@ func _process(delta:float) -> void:
 	if Input.is_key_pressed(KEY_E): target_dir += Vector3.UP
 	if Input.is_key_pressed(KEY_Q): target_dir -= Vector3.UP
 	if target_dir.length_squared() > 0:
-		target_dir = target_dir.normalized() * move_speed
+		target_dir = target_dir.normalized() * move_speed * multiplier
 	_current_velocity = _current_velocity.lerp(target_dir, delta * smoothing_speed)
 	global_position += _current_velocity * delta
